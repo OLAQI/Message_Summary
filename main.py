@@ -21,10 +21,12 @@ class GroupChatSummaryPlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
         self.message_counts = {}  # 用于存储每个群组的消息计数 {group_id: count}
-        # 从配置文件读取配置，如果配置文件不存在，会使用这里的默认值
-        self.summary_threshold = config.get("summary_threshold", 50) # 多少条消息触发总结
-        self.summary_mode = config.get("summary_mode", "immediate")  # "immediate" 或 "daily"
-        self.summary_time = config.get("summary_time", "20:00")  # 每日总结时间，格式为 "HH:MM"
+        # 从配置文件读取配置, AstrBot会自动传入 config
+        self.config = config
+        self.summary_threshold = self.config.get("summary_threshold", 50) # 多少条消息触发总结
+        self.summary_mode = self.config.get("summary_mode", "immediate")  # "immediate" 或 "daily"
+        self.summary_time = self.config.get("summary_time", "20:00")  # 每日总结时间，格式为 "HH:MM"
+
 
         self.scheduler = AsyncIOScheduler()
         self.scheduler.start()

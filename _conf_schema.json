@@ -1,27 +1,37 @@
 {
-    "mode": {
-        "type": "string",
-        "description": "总结模式",
-        "options": ["auto", "daily"],
-        "default": "auto",
-        "hint": "auto-消息达阈值自动触发 | daily-每日定时总结"
-    },
-    "threshold": {
+    "message_count": {
+        "description": "触发总结的消息条数",
         "type": "int",
-        "description": "触发阈值",
+        "hint": "达到此条数触发总结（最低5条）",
         "default": 50,
-        "hint": "消息量达到该值时生成总结"
+        "min": 5,
+        "max": 200
     },
-    "style": {
+    "summary_time": {
+        "description": "总结信息发送时间",
         "type": "string",
+        "options": ["immediate", "daily"],
+        "default": "immediate",
+        "hint": "immediate: 立即发送, daily: 每天固定时间"
+    },
+    "fixed_send_time": {
+        "description": "每日固定发送时间",
+        "type": "string",
+        "default": "23:59",
+        "hint": "格式: HH:MM (仅在 daily 模式下有效)"
+    },
+    "trigger_command": {
+        "description": "触发总结的命令词",
+        "type": "string",
+        "default": "/summary",
+        "hint": "用户发送此命令触发总结"
+    },
+    "summary_mode":{
         "description": "总结风格",
-        "default": "简明扼要",
-        "options": ["简明扼要", "幽默风趣", "专业报告"]
-    },
-    "time": {
         "type": "string",
-        "description": "定时时间",
-        "default": "23:30",
-        "hint": "仅在daily模式下生效(HH:mm格式)"
+        "options": ["简介", "严谨", "幽默"],
+        "default": "简介",
+        "hint": "选择总结的风格"
+
     }
 }

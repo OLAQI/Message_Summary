@@ -1,6 +1,6 @@
 name: astrbot_plugin_Message_Summary
-desc: 群聊总结插件，支持自定义消息条数触发总结、定时总结和命令触发总结。 # 插件简短描述
-help: 输入 /summary 可以手动触发总结
+desc: 群聊消息总结插件，支持自动/定时/手动三种触发模式
+help: 发送 /summary_help 查看使用说明
 version: v1.0.1
 author: OLAQI
 repo: https://github.com/OLAQI/Message_Summary

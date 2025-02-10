@@ -8,4 +8,4 @@ help: |-  # 帮助信息（支持多行）
     - 通过管理面板配置插件参数。
 version: v1.0.7
 author: OLAQI
-repo: https://github.com/OLAQI/astrbot_plugin_Message_Summary
+repo: https://github.com/OLAQI/Message_Summary

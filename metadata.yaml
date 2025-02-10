@@ -1,6 +1,6 @@
 name: astrbot_plugin_Message_Summary
 desc: 智能群聊消息摘要插件
 help: 发送配置的命令词触发总结
-version: v1.0.3
+version: v1.0.4
 author: OLAQI
 repo: https://github.com/OLAQI/astrbot_plugin_Message_Summary

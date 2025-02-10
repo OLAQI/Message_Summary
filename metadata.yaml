@@ -1,11 +1,13 @@
 name: astrbot_plugin_message_summary
-desc: 群聊消息总结插件，支持自动、定时和命令触发
+desc: 群聊消息总结插件，支持自动、定时和命令触发，包含天气查询和每日励志名言
 help: |-  # 帮助信息（支持多行）
   群聊消息总结插件使用说明：
     - 当群消息达到设定条数时自动总结（立即模式）。
     - 每天固定时间发送总结（每日模式）。
     - 使用命令 /summary 手动触发总结。
+    - 使用命令 /weather <城市名> 查询天气。
+    - 每日发送一条励志名言。
     - 通过管理面板配置插件参数。
-version: v1.0.8
+version: v1.0.9
 author: OLAQI
 repo: https://github.com/OLAQI/astrbot_plugin_message_summary

@@ -1,0 +1,8 @@
+{
+    "max_memories": {
+        "description": "每个会话最大记忆数量",
+        "type": "int",
+        "hint": "超出数量时会删除最不重要的记忆",
+        "default": 10
+    }
+} 

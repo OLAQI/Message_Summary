@@ -1,136 +1,100 @@
-import logging
-import json
-import os
-import datetime
-from typing import List
-
+from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult, MessageChain, EventMessageType
 from astrbot.api.star import Context, Star, register
-from astrbot.api.event import AstrMessageEvent, MessageEventResult
-from astrbot.api.event.filter import command, event_message_type
-from astrbot.api.message_components import Plain, MessageChain
-from astrbot.api.event.filter import EventMessageType
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from typing import Union
 
-
-# 获取当前模块 logger
-logger = logging.getLogger(__name__)
-
-@register("group_chat_summary", "OLAQI", "群聊消息总结插件", "1.0.1", "https://github.com/OLAQI/Message_Summary/")
-class GroupChatSummaryPlugin(Star):
-
+@register("message_summary", "Your Name", "一个用于总结群聊消息的 AstrBot 插件。", "1.0.0", "your_repo_url")
+class MessageSummaryPlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
-        self.message_counts = {}  # 用于存储每个群组的消息计数 {group_id: count}
-        # 从配置文件读取配置, AstrBot会自动传入 config
         self.config = config
-        self.summary_threshold = self.config.get("summary_threshold", 50) # 多少条消息触发总结
-        self.summary_mode = self.config.get("summary_mode", "immediate")  # "immediate" 或 "daily"
-        self.summary_time = self.config.get("summary_time", "20:00")  # 每日总结时间，格式为 "HH:MM"
-
-        # 读取触发词配置
-        self.trigger_phrase = self.config.get("trigger_phrase", "阿辉总结")
+        self.message_buffer = {}
 
 
-        self.scheduler = AsyncIOScheduler()
-        self.scheduler.start()
-        
-        plugin_dir = os.path.dirname(os.path.abspath(__file__))  # 获取当前文件所在目录
-        self.messages_file = os.path.join(plugin_dir, "messages.json")
-        if not os.path.exists(self.messages_file):
-          with open(self.messages_file, "w", encoding='utf-8') as f:
-            f.write("{}")
-        with open(self.messages_file, "r", encoding='utf-8') as f:
-          self.group_messages = json.load(f) # {group_id: [messages]}
-        
+    @filter.command("summary")
+    async def summary_command(self, event: AstrMessageEvent):
+        '''总结群聊消息'''
+        await self.handle_summary(event)
 
-        # 如果是每日总结模式，添加定时任务
-        if self.summary_mode == "daily":
-            self._schedule_daily_summary()
+    @filter.on_message(priority=-1)
+    async def on_message(self, event: AstrMessageEvent):
 
-    def _schedule_daily_summary(self):
-        """安排每日总结任务"""
-        try:
-          hour, minute = map(int, self.summary_time.split(':'))
-          self.scheduler.add_job(
-              self.daily_summary_task,
-              'cron',
-              hour=hour,
-              minute=minute,
-              misfire_grace_time=60  # 如果错过触发时间，60秒内仍会执行
-          )
-        except ValueError:
-          logger.error(f"Invalid summary_time format: {self.summary_time}.  Please use HH:MM format.")
+        if event.message_type != EventMessageType.GROUP_MESSAGE:
+            return
 
-    async def daily_summary_task(self):
-        """每日总结任务的执行函数"""
-        for group_id in list(self.group_messages.keys()):  # 使用 list 避免 RuntimeError
-             await self.generate_and_send_summary(group_id,f"这是今天的群聊总结：")
+        group_id = event.group_id
+        if group_id not in self.message_buffer:
+            self.message_buffer[group_id] = []
+
+        self.message_buffer[group_id].append(event.raw_message)
+
+        if self.config.get("summary_mode", "immediate") == "immediate":
+            if len(self.message_buffer[group_id]) >= self.config.get("summary_threshold", 50):
+                await self.handle_summary(event)
+                return
+
+        trigger_phrase = self.config.get("trigger_phrase", "阿辉总结")
+        if trigger_phrase in event.message_str:
+            await self.handle_summary(event)
 
 
-    @event_message_type(EventMessageType.GROUP_MESSAGE)
-    async def on_group_message(self, event: AstrMessageEvent) -> MessageEventResult:
-        """监听群聊消息"""
-        group_id = event.get_group_id()
-        message_str = event.message_str
+    async def handle_summary(self, event: AstrMessageEvent):
+        group_id = event.group_id
+        if group_id not in self.message_buffer:
+            self.message_buffer[group_id] = []
 
-        # 存储消息
-        if group_id not in self.group_messages:
-            self.group_messages[group_id] = []
-        self.group_messages[group_id].append(f"{event.get_sender_name()}: {message_str}")
-        with open(self.messages_file, 'w', encoding='utf-8') as f:
-            json.dump(self.group_messages, f, ensure_ascii=False, indent=4)
-
-
-        # 计数
-        if group_id not in self.message_counts:
-            self.message_counts[group_id] = 0
-        self.message_counts[group_id] += 1
-
-        # 如果达到阈值，并且模式为立即总结，则触发总结
-        if self.message_counts[group_id] >= self.summary_threshold and self.summary_mode == "immediate":
-            await self.generate_and_send_summary(group_id, f"以下是最近 {self.summary_threshold} 条消息的总结：")
-            self.message_counts[group_id] = 0  # 重置计数
-            self.group_messages[group_id] = [] # 清空消息记录
-            with open(self.messages_file, 'w', encoding='utf-8') as f:
-                json.dump(self.group_messages, f, ensure_ascii=False, indent=4)
-
-        # 使用配置的触发词
-        if self.trigger_phrase in message_str:
-            await self.generate_and_send_summary(group_id, "以下是之前的群聊总结：")
-
-
-
-    async def generate_and_send_summary(self, group_id: str, prefix_message:str):
-        """生成并发送总结"""
-        messages = self.group_messages.get(group_id)
+        messages = self.message_buffer[group_id]
         if not messages:
-            await self.context.send_message(
-                f"group:{group_id}",  # 使用 group:group_id 作为 unified_msg_origin
-                MessageChain().plain("当前群组没有消息记录。")
-            )
+            yield event.plain_result("没有需要总结的消息。")
             return
 
+        # 构造消息链, 提取消息内容 (这里需要根据你的raw_message结构调整)
+        message_texts = []
+        for msg in messages:
+
+            if isinstance(msg, dict) :
+                if msg.get('message'):
+                    for m in msg.get('message'):
+                        if m.get('type') == 'Plain':
+                            message_texts.append( m.get('text'))
+            elif isinstance(msg, list):
+                 for m in msg:
+                        if m.get('type') == 'Plain':
+                            message_texts.append( m.get('text'))
+
+
+        # 调用 LLM 进行总结 (这里只是一个示例，你需要根据你的 LLM provider 实现)
         provider = self.context.get_using_provider()
-        if not provider:
-            await self.context.send_message(
-              f"group:{group_id}",
-              MessageChain().plain("未启用 LLM，无法生成总结。")
-            )
-            return
-        try:
+        if provider:
+             prompt = "请总结以下聊天记录：\n" + "\n".join(message_texts)
+             response = await provider.text_chat(prompt,session_id=event.session_id)
+             summary_text = response.completion_text
+             yield event.plain_result(summary_text)
 
-          messages_text = "\n".join(messages)
-          prompt = f"请总结以下群聊消息：\n\n{messages_text}\n\n总结:"
 
-          response = await provider.text_chat(prompt, session_id=f"group:{group_id}")
-          summary_text = response.completion_text
-          await self.context.send_message(
-              f"group:{group_id}",  # 使用 group:group_id 作为 unified_msg_origin
-              MessageChain().plain(prefix_message + summary_text)
-          )
-          
-        except Exception as e:
-            await self.context.send_message(
-               f"group:{group_id}",
-                MessageChain().plain(f"生成总结时发生错误：{e}")
-            )
+
+        else:
+            yield event.plain_result("未配置大语言模型，无法进行总结。")
+
+        # 清空消息缓冲区
+        self.message_buffer[group_id] = []
+
+
+    @filter.on_cron_timer("summary_timer", rule="0 0 20 * * *")  # 默认的 20:00, 会被用户配置覆盖
+    async def daily_summary_timer(self):
+        # 获取所有群组ID
+        group_ids = self.message_buffer.keys()
+
+        for group_id in group_ids:
+            # 构造一个假的event
+            class MockEvent:
+                def __init__(self, group_id):
+                    self.group_id = group_id
+                    self.session_id = f"group_{group_id}"  # 构造session_id
+
+                def plain_result(self, text):
+                    return text
+
+            mock_event = MockEvent(group_id)
+
+            if self.config.get("summary_mode", "immediate") == "daily":
+                await self.handle_summary(mock_event)

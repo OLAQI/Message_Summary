@@ -1,9 +1,6 @@
 name: Message_Summary
-desc: 自动总结群聊消息的插件
-help: |-
-  - 当群聊消息达到设定数量时自动总结。
-  - 可设置每日固定时间进行总结。
-  - 可设置监听命令词触发总结。
+desc: 一个AI总结插件，可以在群聊中达到一定条数后自动发送总结，支持定时和触发命令  # 插件简短描述
+help: 输入 /summary_help 查看帮助  # 插件的帮助信息
 version: v1.0.1
 author: OLAQI
 repo: https://github.com/OLAQI/Message_Summary

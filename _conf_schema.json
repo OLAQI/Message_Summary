@@ -1,32 +1,31 @@
 {
-  "message_count": {
-    "description": "触发消息阈值",
+  "threshold": {
+    "description": "触发消息数",
     "type": "int",
-    "default": 50,
-    "min": 10,
-    "max": 500
+    "min": 5,
+    "max": 200,
+    "default": 20
   },
-  "summary_mode": {
-    "description": "总结模式",
+  "mode": {
+    "description": "工作模式",
     "type": "string",
-    "options": ["immediate", "daily"],
-    "default": "immediate"
+    "options": ["auto", "daily"],
+    "default": "auto"
   },
-  "fixed_send_time": {
-    "description": "定时发送时间",
+  "time": {
+    "description": "定时时间",
     "type": "string",
-    "default": "23:59",
-    "visible_if": {"summary_mode": "daily"}
+    "default": "23:30",
+    "visible_if": {"mode": "daily"}
   },
-  "trigger_command": {
+  "command": {
     "description": "触发命令",
     "type": "string", 
-    "default": "/summary"
+    "default": "/群总结"
   },
-  "summary_style": {
+  "style": {
     "description": "总结风格",
-    "type": "string",
-    "options": ["简洁干练", "生动有趣", "专业严谨"],
-    "default": "简洁干练"
+    "options": ["简洁", "幽默", "专业"],
+    "default": "简洁"
   }
 }

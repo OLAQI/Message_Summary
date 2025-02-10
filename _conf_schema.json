@@ -2,7 +2,7 @@
     "message_count": {
         "description": "触发总结的消息条数",
         "type": "int",
-        "hint": "达到此条数触发总结（最低5条，最多200条）",
+        "hint": "达到此条数触发总结（最低5条）",
         "default": 50,
         "min": 5,
         "max": 200
@@ -33,9 +33,10 @@
         "default": "简洁",
         "hint": "选择总结的风格"
     },
-    "weather_api_key": {
-        "description": "天气API密钥",
+    "weather_location": {
+        "description": "天气地点",
         "type": "string",
-        "hint": "用于查询天气的API密钥"
+        "default": "北京",
+        "hint": "用于获取天气信息的地点"
     }
 }

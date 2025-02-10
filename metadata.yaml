@@ -3,4 +3,4 @@ desc: 一个群聊总结插件，可以在达到一定消息条数或特定时�
 help: 输入 /summary 可以手动触发总结
 version: v1.0.1
 author: OLAQI
-repo: https://github.com/OLAQI/Message_Summary
+repo: https://github.com/OLAQI/astrbot_plugin_Message_Summary

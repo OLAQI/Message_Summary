@@ -1,4 +1,5 @@
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
+from astrbot.api.event.filter import EventMessageType  # 添加这一行
 from astrbot.api.star import Context, Star, register
 from astrbot.api.provider import ProviderRequest
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -23,7 +24,7 @@ class MessageSummaryPlugin(Star):
         if self.config.get('summary_time') == 'daily':
             self.scheduler.add_job(self.send_daily_summary, 'cron', hour=int(self.config["fixed_send_time"].split(":")[0]), minute=int(self.config["fixed_send_time"].split(":")[1]))
 
-    @filter.event_message_type(EventMessageType.GROUP_MESSAGE)
+    @filter.event_message_type(EventMessageType.GROUP_MESSAGE)  # 现在 EventMessageType 已经定义
     async def log_message(self, event: AstrMessageEvent):
         """消息存储处理"""
         msg = event.message_obj

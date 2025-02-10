@@ -1,6 +1,12 @@
-from astrbot.api.event import filter, AstrMessageEvent
-from astrbot.api.star import Context, Star, register
-from astrbot.api.all import EventMessageType
+from astrbot.api.all import (
+    AstrMessageEvent, 
+    EventMessageType,
+    Star,
+    Context,
+    filter,
+    register
+)
+from astrbot.api.message_components import Plain
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime
 import json
@@ -10,7 +16,7 @@ import collections
 message_store = collections.defaultdict(
     lambda: {
         'count': 0,
-        'messages': collections.deque(maxlen=500)  # [^2]消息链存储结构
+        'messages': collections.deque(maxlen=500)
     }
 )
 
@@ -21,8 +27,8 @@ class GroupSummaryPlugin(Star):
         self.config = config
         self.scheduler = AsyncIOScheduler()
         self.data_file = os.path.join(os.path.dirname(__file__), "message_store.json")
-        self._load_store()  # [^3]配置初始化加载
-        
+        self._load_store()
+
         if self.config['mode'] == 'daily':
             self._setup_schedule()
         self.scheduler.start()
@@ -36,7 +42,8 @@ class GroupSummaryPlugin(Star):
                     message_store[gid]['count'] = v['count']
 
     def _save_store(self):
-        data = {gid: {'count': v['count'], 'messages': list(v['messages'])} for gid, v in message_store.items()}
+        data = {gid: {'count': v['count'], 'messages': list(v['messages'])} 
+               for gid, v in message_store.items()}
         with open(self.data_file, 'w') as f:
             json.dump(data, f, indent=2)
 
@@ -49,48 +56,54 @@ class GroupSummaryPlugin(Star):
             await self._process_summary(gid, is_daily=True)
         self._save_store()
 
-    @filter.event_message_type(EventMessageType.GROUP_MESSAGE)  # [^1]消息类型过滤器
-    async def on_message(self, event: AstrMessageEvent):        # [^3]正确事件类型参数
-        msg = event.message_obj  # [^3]通过事件对象获取消息
+    @filter.event_message_type(EventMessageType.GROUP_MESSAGE)  # [^5]
+    async def on_message(self, event: AstrMessageEvent):        # [^2]
+        msg = event.message_obj
         gid = msg.group_id
         
         message_store[gid]['count'] += 1
         message_store[gid]['messages'].append({
-            "time": msg.timestamp,
-            "text": event.message_str[:100],
+            "time": datetime.datetime.now().isoformat(),
+            "text": event.message_str[:200],
             "sender": msg.sender.nickname
         })
         
         if self.config['mode'] == 'auto' and message_store[gid]['count'] >= self.config['threshold']:
             await self._process_summary(gid)
+            self._save_store()
 
     async def _process_summary(self, group_id: str, is_daily=False):
         data = message_store[group_id]
         if data['count'] < 5:
-            # ...此处省略详细处理逻辑...
             return
         
-        provider = self.context.get_using_provider()
-        history = "\n".join([f"【{m['sender']}】{m['text']}" for m in list(data['messages'])[-self.config['threshold']:]])
-        
         try:
+            provider = self.context.get_using_provider()
+            history = "\n".join(
+                [f"{m['sender']}: {m['text']}" 
+                for m in list(data['messages'])[-self.config['threshold']:]]
+            )
+            
             resp = await provider.text_chat(
                 prompt=f"生成{self.config['style']}风格的群聊摘要：\n{history}",
                 session_id=group_id
             )
+            
+            summary_type = "每日" if is_daily else "实时"
             await self.context.send_message(
-                group_id, 
-                f"【{'每日' if is_daily else '实时'}总结】\n{resp.completion_text}"
+                group_id,
+                [Plain(f"【{summary_type}群聊总结】\n"),
+                 Plain(resp.completion_text)]
             )
             message_store[group_id]['count'] = 0
-            self._save_store()
+            
         except Exception as e:
             await self.context.send_message(group_id, f"总结生成失败：{str(e)}")
 
-    @filter.command("${command}")  # [^2]动态指令注册
-    async def trigger(self, event: AstrMessageEvent):
+    @filter.command("${command}")  # [^6]
+    async def trigger_summary(self, event: AstrMessageEvent):
         await self._process_summary(event.message_obj.group_id)
-        yield event.plain_result("总结请求已处理")
+        yield event.message("总结请求已处理")
 
     def __del__(self):
         self._save_store()

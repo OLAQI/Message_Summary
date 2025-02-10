@@ -1,8 +1,8 @@
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult, MessageChain, EventMessageType
+from astrbot.api.all import filter, AstrMessageEvent, MessageEventResult, MessageChain, EventMessageType
 from astrbot.api.star import Context, Star, register
 from typing import Union
 
-@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.1", "https://github.com/OLAQI/Message_Summary/")
+@register("message_summary", "Your Name", "一个用于总结群聊消息的 AstrBot 插件。", "1.0.0", "your_repo_url")
 class MessageSummaryPlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
@@ -98,3 +98,4 @@ class MessageSummaryPlugin(Star):
 
             if self.config.get("summary_mode", "immediate") == "daily":
                 await self.handle_summary(mock_event)
+

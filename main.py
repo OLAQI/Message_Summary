@@ -7,7 +7,7 @@ from typing import List
 from astrbot.api.star import Context, Star, register
 from astrbot.api.event import AstrMessageEvent, MessageEventResult
 from astrbot.api.event.filter import command, event_message_type
-from astrbot.api.message_components import Plain
+from astrbot.api.message_components import Plain, MessageChain
 from astrbot.api.event.filter import EventMessageType
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -15,7 +15,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 # 获取当前模块 logger
 logger = logging.getLogger(__name__)
 
-@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.0", "https://github.com/OLAQI/Message_Summary/")
+@register("group_chat_summary", "OLAQI", "群聊消息总结插件", "1.0.0", "https://github.com/OLAQI/Message_Summary/")
 class GroupChatSummaryPlugin(Star):
 
     def __init__(self, context: Context, config: dict):
@@ -26,6 +26,9 @@ class GroupChatSummaryPlugin(Star):
         self.summary_threshold = self.config.get("summary_threshold", 50) # 多少条消息触发总结
         self.summary_mode = self.config.get("summary_mode", "immediate")  # "immediate" 或 "daily"
         self.summary_time = self.config.get("summary_time", "20:00")  # 每日总结时间，格式为 "HH:MM"
+
+        # 读取触发词配置
+        self.trigger_phrase = self.config.get("trigger_phrase", "阿辉总结")
 
 
         self.scheduler = AsyncIOScheduler()
@@ -91,12 +94,10 @@ class GroupChatSummaryPlugin(Star):
             with open(self.messages_file, 'w', encoding='utf-8') as f:
                 json.dump(self.group_messages, f, ensure_ascii=False, indent=4)
 
-    @command("总结")
-    async def summarize_command(self, event: AstrMessageEvent) -> MessageEventResult:
-      """手动触发总结命令"""
-      group_id = event.get_group_id()
-      if group_id:
-        await self.generate_and_send_summary(group_id, "以下是之前的群聊总结：")
+        # 使用配置的触发词
+        if self.trigger_phrase in message_str:
+            await self.generate_and_send_summary(group_id, "以下是之前的群聊总结：")
+
 
 
     async def generate_and_send_summary(self, group_id: str, prefix_message:str):
@@ -133,4 +134,3 @@ class GroupChatSummaryPlugin(Star):
                f"group:{group_id}",
                 MessageChain().plain(f"生成总结时发生错误：{e}")
             )
-

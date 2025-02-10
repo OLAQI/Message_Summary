@@ -5,12 +5,14 @@ from astrbot.api.message_components import Plain
 from typing import List, Dict, Any
 import asyncio
 import logging
+import random
+import requests
 
 # 设置日志记录
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.8", "https://github.com/OLAQI/astrbot_plugin_message_summary")
+@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.9", "https://github.com/OLAQI/astrbot_plugin_message_summary")
 class MessageSummaryPlugin(Star):
     def __init__(self, context: Context, config: Dict[str, Any]):
         super().__init__(context)
@@ -81,6 +83,11 @@ class MessageSummaryPlugin(Star):
                 await event.send([Plain(f"📝 群聊总结：\n{summary_text}")])
                 # 清空消息历史
                 self.message_history[group_id] = []
+
+                # 发送一个随机笑话
+                joke = await self.get_random_joke()
+                await event.send([Plain(f"😂 随机笑话：\n{joke}")])
+
             except Exception as e:
                 logger.error(f"生成总结时发生错误: {e}")
                 await event.send([Plain("❌ 生成总结时发生错误，请稍后再试。")])
@@ -93,6 +100,41 @@ class MessageSummaryPlugin(Star):
         trigger_command = self.config.get("trigger_command", "/summary")
         if event.message_str.strip() == trigger_command:
             await self.send_summary(event)
+
+    @filter.command("weather")
+    async def weather_query(self, event: AstrMessageEvent, city: str):
+        """查询天气"""
+        api_key = self.config.get("weather_api_key")
+        if not api_key:
+            await event.send([Plain("❌ 未配置天气API密钥，请先配置。")])
+            return
+
+        try:
+            response = requests.get(f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric&lang=zh_cn")
+            data = response.json()
+            if response.status_code == 200:
+                weather_info = f"当前 {data['name']} 的天气情况：\n温度：{data['main']['temp']}°C\n天气状况：{data['weather'][0]['description']}"
+                await event.send([Plain(weather_info)])
+            else:
+                await event.send([Plain("❌ 查询天气失败，请检查城市名称是否正确。")])
+        except Exception as e:
+            logger.error(f"查询天气时发生错误: {e}")
+            await event.send([Plain("❌ 查询天气时发生错误，请稍后再试。")])
+
+    async def get_random_joke(self) -> str:
+        """获取随机笑话"""
+        try:
+            response = requests.get("https://v2.jokeapi.dev/joke/Any?lang=zh")
+            data = response.json()
+            if response.status_code == 200 and data["type"] == "single":
+                return data["joke"]
+            elif response.status_code == 200 and data["type"] == "twopart":
+                return f"{data['setup']} {data['delivery']}"
+            else:
+                return "获取笑话失败，请稍后再试。"
+        except Exception as e:
+            logger.error(f"获取笑话时发生错误: {e}")
+            return "获取笑话时发生错误，请稍后再试。"
 
     async def send_daily_summary(self):
         # 遍历所有群聊（这里假设只有一个，但你可以扩展）
@@ -121,3 +163,20 @@ class MessageSummaryPlugin(Star):
             mock_event = MockEvent(group_id)
             await self.log_message(mock_event)  # 调用log_message
             await self.send_summary(mock_event)
+
+            # 发送每日励志名言
+            quote = await self.get_daily_quote()
+            await self.context.send_message(group_id, [Plain(f"🌟 每日励志名言：\n{quote}")])
+
+    async def get_daily_quote(self) -> str:
+        """获取每日励志名言"""
+        try:
+            response = requests.get("https://api.quotable.io/random")
+            data = response.json()
+            if response.status_code == 200:
+                return f"{data['content']} - {data['author']}"
+            else:
+                return "获取名言失败，请稍后再试。"
+        except Exception as e:
+            logger.error(f"获取名言时发生错误: {e}")
+            return "获取名言时发生错误，请稍后再试。"

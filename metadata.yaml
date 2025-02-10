@@ -3,7 +3,7 @@ desc: 自动总结群聊消息的插件
 help: |-
   - 当群聊消息达到设定数量时自动总结。
   - 可设置每日固定时间进行总结。
-  - 使用“总结”命令手动触发总结。
-version: v1.0.0
+  - 可设置监听命令词触发总结。
+version: v1.0.1
 author: OLAQI
 repo: https://github.com/OLAQI/Message_Summary

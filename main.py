@@ -1,98 +1,69 @@
-from astrbot.api.event import AstrMessageEvent, MessageEventResult
+import logging
 from astrbot.api.star import Context, Star, register
-from astrbot.api.event.filter import command, event_message_type, EventMessageType
-from astrbot.api.provider import ProviderRequest, LLMResponse
+from astrbot.api.event import AstrMessageEvent, MessageEventResult
+from astrbot.api.event.filter import event_message_type, EventMessageType
+from astrbot.api.provider import ProviderRequest
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from typing import List, Dict
 import json
 import os
 import datetime
-import logging
-from typing import List
 
 logger = logging.getLogger("astrbot")
 
-@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.1", "https://github.com/OLAQI/Message_Summary/")
-class AISummaryPlugin(Star):
+@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.1", "https://github.com/OLAQI/Message_Summary")
+class GroupSummaryPlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
-        self.message_count = config.get("message_count", 10)
-        self.summary_time = config.get("summary_time", "immediate")
-        self.trigger_command = config.get("trigger_command", "总结")
-        
-        # 使用插件目录下的数据文件
-        plugin_dir = os.path.dirname(os.path.abspath(__file__))  # 获取当前文件所在目录
-        self.data_file = os.path.join(plugin_dir, "chat_data.json")
-        
-        # 初始化数据存储
-        if not os.path.exists(self.data_file):
-            with open(self.data_file, "w", encoding='utf-8') as f:
-                f.write("{}")
-        with open(self.data_file, "r", encoding='utf-8') as f:
-            self.chat_data = json.load(f)
+        self.config = config
+        self.message_count = 0
+        self.messages = []
         
         # 初始化定时器
         self.scheduler = AsyncIOScheduler()
-        self._init_scheduler()
-
-    def _init_scheduler(self):
-        if self.summary_time != "immediate":
-            try:
-                hour, minute = map(int, self.summary_time.split(":"))
-                self.scheduler.add_job(
-                    self._send_summary,
-                    'cron',
-                    hour=hour,
-                    minute=minute,
-                    misfire_grace_time=60
-                )
-            except ValueError:
-                logger.error("Invalid summary time format. Please use HH:MM.")
+        if self.config["summary_time"] == "每天固定时间":
+            self.scheduler.add_job(self.send_daily_summary, 'cron', hour=int(self.config["fixed_send_time"].split(":")[0]), minute=int(self.config["fixed_send_time"].split(":")[1]))
         self.scheduler.start()
-
-    async def _save_chat_data(self):
-        with open(self.data_file, "w", encoding='utf-8') as f:
-            json.dump(self.chat_data, f, ensure_ascii=False)
 
     @event_message_type(EventMessageType.GROUP_MESSAGE)
     async def on_group_message(self, event: AstrMessageEvent) -> MessageEventResult:
-        session_id = event.unified_msg_origin
-        if session_id not in self.chat_data:
-            self.chat_data[session_id] = []
-        
-        message_str = event.message_str
-        self.chat_data[session_id].append(message_str)
-        
-        if len(self.chat_data[session_id]) >= self.message_count or self.trigger_command in message_str:
-            await self._send_summary(session_id)
-            self.chat_data[session_id] = []  # 清空已处理的消息
-        
-        await self._save_chat_data()
+        self.message_count += 1
+        self.messages.append(event.message_obj.raw_message)
 
-    async def _send_summary(self, session_id: str = None):
-        if session_id is None:
-            for session_id, messages in self.chat_data.items():
-                if len(messages) >= self.message_count:
-                    await self._generate_and_send_summary(session_id, messages)
-                    self.chat_data[session_id] = []  # 清空已处理的消息
-        else:
-            messages = self.chat_data.get(session_id, [])
-            if len(messages) >= self.message_count:
-                await self._generate_and_send_summary(session_id, messages)
-                self.chat_data[session_id] = []  # 清空已处理的消息
+        # 检查是否达到总结条件
+        if self.message_count >= self.config["message_count"]:
+            await self.send_summary(event)
+            self.reset_counters()
 
-    async def _generate_and_send_summary(self, session_id: str, messages: List[str]):
+        # 检查是否触发命令词
+        if self.config["trigger_command"] in event.message_obj.raw_message:
+            await self.send_summary(event)
+
+        return event.plain_result("")
+
+    async def send_summary(self, event: AstrMessageEvent):
+        summary = await self.generate_summary(self.messages)
+        yield event.plain_result(f"群聊总结：\n{summary}")
+        self.reset_counters()
+
+    async def generate_summary(self, messages: List[str]) -> str:
+        # 使用LLM生成总结
         provider = self.context.get_using_provider()
         if provider:
-            try:
-                prompt = f"请对以下聊天记录进行总结：\n{''.join(messages)}"
-                response = await provider.text_chat(prompt, session_id=session_id)
-                summary = response.completion_text
-                await self.context.send_message(session_id, summary)
-            except Exception as e:
-                logger.error(f"生成总结时出错: {e}")
-                await self.context.send_message(session_id, "生成总结时出错，请稍后再试。")
+            prompt = f"请根据以下群聊内容生成一个简洁的总结：\n{' '.join(messages)}"
+            response = await provider.text_chat(prompt, session_id=event.session_id)
+            return response.completion_text
         else:
-            await self.context.send_message(session_id, "LLM 未启用，请联系管理员。")
+            return "无法生成总结，请检查LLM配置。"
+
+    def reset_counters(self):
+        self.message_count = 0
+        self.messages = []
+
+    async def send_daily_summary(self):
+        for group_id in self.context.groups:
+            event = AstrMessageEvent(group_id=group_id, message_str="")
+            await self.send_summary(event)
 
     @command("summary_help")
     async def summary_help(self, event: AstrMessageEvent):

@@ -64,7 +64,7 @@ class MessageSummaryPlugin(Star):
             elif summary_mode == "幽默":
                 prompt += "以幽默的风格总结"
             else:
-                prompt += "以简洁的风格总结"
+                prompt += "以简介的风格总结"
 
             response = await provider.text_chat(
                 prompt,

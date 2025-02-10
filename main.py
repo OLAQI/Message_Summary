@@ -1,9 +1,10 @@
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult, EventMessageType
+from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
+from astrbot.api.event.filter import EventMessageType
 from astrbot.api.star import Context, Star, register
 from astrbot.api.message_components import Plain
 from typing import List, Dict, Any
 
-@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.6", "https://github.com/OLAQI/astrbot_plugin_Message_Summary")
+@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.7", "https://github.com/OLAQI/astrbot_plugin_Message_Summary")
 class MessageSummaryPlugin(Star):
     def __init__(self, context: Context, config: Dict[str, Any]):
         super().__init__(context)
@@ -63,7 +64,7 @@ class MessageSummaryPlugin(Star):
             elif summary_mode == "幽默":
                 prompt += "以幽默的风格总结"
             else:
-                prompt += "以简介的风格总结"
+                prompt += "以简洁的风格总结"
 
             response = await provider.text_chat(
                 prompt,
@@ -114,4 +115,3 @@ class MessageSummaryPlugin(Star):
             mock_event = MockEvent(group_id)
             await self.log_message(mock_event) #调用log_message
             await self.send_summary(mock_event)
-

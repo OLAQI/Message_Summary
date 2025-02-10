@@ -1,27 +1,20 @@
 {
-  "trigger_phrase": {
-    "description": "触发总结的关键词",
-    "type": "string",
-    "default": "阿辉总结",
-    "hint": "当群聊消息中包含此关键词时，触发总结功能。"
-  },
-  "summary_threshold": {
-    "description": "触发总结的消息数量阈值",
-    "type": "int",
-    "default": 50,
-    "hint": "当群聊消息数量达到此值时，触发总结（仅在 immediate 模式下生效）。"
-  },
-  "summary_mode": {
-    "description": "总结模式",
-    "type": "string",
-    "default": "immediate",
-    "hint": "选择 'immediate' (立即) 或 'daily' (每日定时) 总结模式。",
-    "options": ["immediate", "daily"]
-  },
-  "summary_time": {
-    "description": "每日总结时间 (HH:MM)",
-    "type": "string",
-    "default": "20:00",
-    "hint": "设置每日定时总结的时间（仅在 daily 模式下生效）。"
-  }
+    "message_count": {
+        "description": "触发总结的消息条数",
+        "type": "int",
+        "hint": "当群聊中达到这个消息条数时触发总结",
+        "default": 10
+    },
+    "summary_time": {
+        "description": "总结信息发送时间",
+        "type": "string",
+        "hint": "立即或每天固定时间 (例如: 'immediate' 或 '23:00')",
+        "default": "immediate"
+    },
+    "trigger_command": {
+        "description": "触发总结的命令词",
+        "type": "string",
+        "hint": "监听到该命令词时自动触发发送总结",
+        "default": "总结"
+    }
 }

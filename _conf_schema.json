@@ -1,8 +1,21 @@
 {
-    "max_memories": {
-        "description": "每个会话最大记忆数量",
+    "summary_threshold": {
+        "description": "触发总结的消息条数",
         "type": "int",
-        "hint": "超出数量时会删除最不重要的记忆",
-        "default": 10
+        "hint": "当群聊消息达到此数量时触发总结",
+        "default": 50
+    },
+    "summary_mode": {
+        "description": "总结模式",
+        "type": "string",
+        "hint": "选择 'immediate' (立即) 或 'daily' (每日)",
+        "default": "immediate",
+        "options": ["immediate", "daily"]
+    },
+    "summary_time": {
+        "description": "每日总结时间 (仅在 daily 模式下有效)",
+        "type": "string",
+        "hint": "设置每日总结的时间，格式为 HH:MM",
+        "default": "20:00"
     }
-} 
+}

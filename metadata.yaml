@@ -6,6 +6,6 @@ help: |-  # 帮助信息（支持多行）
     - 每天固定时间发送总结（每日模式）。
     - 使用命令 /summary 手动触发总结。
     - 通过管理面板配置插件参数。
-version: v1.0.6
+version: v1.0.7
 author: OLAQI
 repo: https://github.com/OLAQI/astrbot_plugin_Message_Summary

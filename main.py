@@ -1,8 +1,6 @@
 import logging
+from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
-from astrbot.api.event import AstrMessageEvent, MessageEventResult
-from astrbot.api.event.filter import event_message_type, EventMessageType
-from astrbot.api.provider import ProviderRequest
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from typing import List, Dict
 import json
@@ -25,7 +23,7 @@ class GroupSummaryPlugin(Star):
             self.scheduler.add_job(self.send_daily_summary, 'cron', hour=int(self.config["fixed_send_time"].split(":")[0]), minute=int(self.config["fixed_send_time"].split(":")[1]))
         self.scheduler.start()
 
-    @event_message_type(EventMessageType.GROUP_MESSAGE)
+    @filter.event_message_type(EventMessageType.GROUP_MESSAGE)
     async def on_group_message(self, event: AstrMessageEvent) -> MessageEventResult:
         self.message_count += 1
         self.messages.append(event.message_obj.raw_message)
@@ -65,7 +63,7 @@ class GroupSummaryPlugin(Star):
             event = AstrMessageEvent(group_id=group_id, message_str="")
             await self.send_summary(event)
 
-    @command("summary_help")
+    @filter.command("summary_help")
     async def summary_help(self, event: AstrMessageEvent):
         help_text = """总结插件使用帮助：
 1. 自动总结：

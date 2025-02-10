@@ -6,7 +6,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from typing import List, Dict, Any
 import requests
 
-@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.1.0", "https://github.com/OLAQI/astrbot_plugin_message_summary")
+@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.1.0", "https://github.com/OLAQI/message_summary")
 class MessageSummaryPlugin(Star):
     def __init__(self, context: Context, config: Dict[str, Any]):
         super().__init__(context)

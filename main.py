@@ -4,7 +4,7 @@ from astrbot.api.star import Context, Star, register
 from astrbot.api.message_components import Plain
 from typing import List, Dict, Any
 
-@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.7", "https://github.com/OLAQI/astrbot_plugin_Message_Summary")
+@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.7", "https://github.com/OLAQI/Message_Summary")
 class MessageSummaryPlugin(Star):
     def __init__(self, context: Context, config: Dict[str, Any]):
         super().__init__(context)

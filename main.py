@@ -15,7 +15,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 # 获取当前模块 logger
 logger = logging.getLogger(__name__)
 
-@register("group_chat_summary", "OLAQI", "群聊消息总结插件", "1.0.0", "https://github.com/OLAQI/Message_Summary/")
+@register("group_chat_summary", "OLAQI", "群聊消息总结插件", "1.0.1", "https://github.com/OLAQI/Message_Summary/")
 class GroupChatSummaryPlugin(Star):
 
     def __init__(self, context: Context, config: dict):

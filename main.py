@@ -2,7 +2,7 @@ from astrbot.api.all import filter, AstrMessageEvent, MessageEventResult, Messag
 from astrbot.api.star import Context, Star, register
 from typing import Union
 
-@register("message_summary", "Your Name", "一个用于总结群聊消息的 AstrBot 插件。", "1.0.0", "your_repo_url")
+@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.1", "https://github.com/OLAQI/Message_Summary/")
 class MessageSummaryPlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)

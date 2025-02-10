@@ -1,129 +1,138 @@
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
-from astrbot.api.event.filter import EventMessageType  # 正确的导入路径 [^5]
+from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
+from astrbot.api.event.filter import EventMessageType
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime
 import json
 import os
-from typing import Dict, List
+import collections
 
-message_store: Dict[str, Dict] = {}  # 存储结构: {group_id: {count, messages}}
+message_store = collections.defaultdict(
+    lambda: {
+        'count': 0,
+        'messages': collections.deque(maxlen=500)  
+    }
+)
 
-@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.2", "https://github.com/OLAQI/astrbot_plugin_Message_Summary")
+@register("Message_Summary", "OLAQI", "群聊消息总结插件", "1.0.3", "https://github.com/OLAQI/astrbot_plugin_Message_Summary")
 class GroupSummaryPlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
         self.config = config
         self.scheduler = AsyncIOScheduler()
         
-        # 初始化数据存储路径 [^6]
-        plugin_dir = os.path.dirname(os.path.abspath(__file__))
-        self.data_file = os.path.join(plugin_dir, "message_store.json") 
-        self._load_message_store()
+        # 初始化数据存储路径 
+        self.data_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), 
+            "message_store.json"
+        )
+        self._load_store()
         
-        # 配置定时任务 [^6]
-        if self.config['summary_mode'] == 'daily':
-            self._setup_daily_schedule()
+        # 配置定时任务
+        if self.config['mode'] == 'daily':
+            self._setup_schedule()
         self.scheduler.start()
 
-    def _load_message_store(self):
+    def _load_store(self):
         """加载历史消息数据"""
-        global message_store
         if os.path.exists(self.data_file):
             with open(self.data_file, 'r') as f:
-                message_store = json.load(f)
+                data = json.load(f)
+                for gid, v in data.items():
+                    message_store[gid]['messages'] = collections.deque(
+                        v['messages'], maxlen=500
+                    )
+                    message_store[gid]['count'] = v['count']
 
-    def _save_message_store(self):
-        """保存消息数据 采用增量保存模式 [^6]"""
+    def _save_store(self):
+      
+        data = {
+            gid: {
+                'count': v['count'],
+                'messages': list(v['messages'])
+            } for gid, v in message_store.items()
+        }
         with open(self.data_file, 'w') as f:
-            json.dump(message_store, f, indent=2)
+            json.dump(data, f, indent=2)
 
-    def _setup_daily_schedule(self):
-        """配置每日定时任务 [^6]"""
-        hour, minute = map(int, self.config['fixed_send_time'].split(':'))
+    def _setup_schedule(self):
+        """定时任务配置"""
+        hour, minute = map(int, self.config['time'].split(':'))
         self.scheduler.add_job(
-            self._daily_summary_task,
+            self._daily_task,
             'cron',
             hour=hour,
-            minute=minute,
-            misfire_grace_time=60
+            minute=minute
         )
 
-    async def _daily_summary_task(self):
-        """每日定时总结逻辑"""
-        for group_id in list(message_store.keys()):
-            if message_store[group_id]['count'] > 0:
-                await self._generate_summary(group_id, is_daily=True)
-                message_store[group_id] = {'count': 0, 'messages': []}
-        self._save_message_store()
+    async def _daily_task(self):
+        """每日定时任务"""
+        for gid in list(message_store.keys()):
+            await self._process_summary(gid, is_daily=True)
+        self._save_store()
 
-    @filter.event_message_type(EventMessageType.GROUP_MESSAGE)  # 正确的事件类型引用 [^5]
-    async def on_group_message(self, event: AstrMessageEvent):
-        """监听群消息并计数"""
-        group_id = event.message_obj.group_id
-        text = event.message_str.strip()
+    @filter.event_message_type(EventMessageType.GROUP_MESSAGE)
+    async def on_message(self, event: AstrMessageEvent):
+        """消息监听"""
+        msg = event.message_obj
+        gid = msg.group_id
         
-        if group_id not in message_store:
-            message_store[group_id] = {
-                'count': 0,
-                'messages': []
-            }
+        message_store[gid]['count'] += 1
+        message_store[gid]['messages'].append({
+            "time": msg.timestamp,
+            "text": event.message_str[:100],
+            "sender": msg.sender.nickname
+        })
         
-        # 维护消息存储 [^6]
-        message_store[group_id]['count'] += 1
-        message_store[group_id]['messages'].append(text[:100])  # 截断过长的消息
-        
-        # 自动触发检查 [^4]
-        if (self.config['summary_mode'] == 'immediate' and 
-            message_store[group_id]['count'] >= self.config['message_count']):
-            await self._generate_summary(group_id)
-            message_store[group_id] = {'count': 0, 'messages': []}
-            self._save_message_store()
+        # 自动触发检查
+        if (self.config['mode'] == 'auto' and 
+            message_store[gid]['count'] >= self.config['threshold']):
+            await self._process_summary(gid)
 
-    async def _generate_summary(self, group_id: str, is_daily: bool = False):
-        """调用LLM生成总结的核心逻辑 [^6]"""
-        provider = self.context.get_using_provider()
-        if not provider:
+    async def _process_summary(self, group_id: str, is_daily=False):
+        """总结处理核心"""
+        data = message_store[group_id]
+        if data['count'] < 5:
+            
+            index = max(-3, -len(data['messages']))
+            recent = data['messages'][index] if data['messages'] else None
+            
+            if recent:
+                time_str = datetime.datetime.fromtimestamp(
+                    recent['time']/1000
+                ).strftime('%m-%d %H:%M')
+                reply = f"当前仅{data['count']}条消息，最新发言({time_str}):\n【{recent['sender']}】{recent['text']}"
+                await self.context.send_message(group_id, reply)
             return
         
-        history = "\n".join(message_store[group_id]['messages'][-self.config['message_count']:])
-        prompt = f"请对{'24小时内' if is_daily else '最近'}的群聊记录生成摘要（{self.config['summary_style']}）：\n{history}"
+        # 生成正式总结
+        provider = self.context.get_using_provider()
+        history = "\n".join([
+            f"【{m['sender']}】{m['text']}" 
+            for m in list(data['messages'])[-self.config['threshold']:]
+        ])
         
         try:
-            response = await provider.text_chat(
-                prompt=prompt,
+            resp = await provider.text_chat(
+                prompt=f"生成{self.config['style']}风格的群聊摘要：\n{history}",
                 session_id=group_id
             )
-            summary = f"【{'每日' if is_daily else '实时'}群聊总结】\n{response.completion_text}"
-            await self.context.send_message(group_id, summary)
+            await self.context.send_message(
+                group_id, 
+                f"【{'每日' if is_daily else '实时'}总结】\n{resp.completion_text}"
+            )
+            # 重置计数
+            message_store[group_id]['count'] = 0
+            self._save_store()
         except Exception as e:
-            await self.context.send_message(group_id, f"生成总结失败：{str(e)}")
+            await self.context.send_message(group_id, f"总结生成失败：{str(e)}")
 
-    @filter.command("${trigger_command}")  # 动态命令配置 [^4]
-    async def manual_trigger(self, event: AstrMessageEvent):
-        """手动触发总结"""
-        group_id = event.message_obj.group_id
-        if message_store.get(group_id, {}).get('count', 0) > 0:
-            await self._generate_summary(group_id)
-            message_store[group_id] = {'count': 0, 'messages': []}
-            self._save_message_store()
-            yield event.plain_result("已生成实时总结")
-        else:
-            yield event.plain_result("当前没有需要总结的消息")
-
-    @filter.command("summary_help")
-    async def show_help(self, event: AstrMessageEvent):
-        """显示帮助信息"""
-        help_text = f"""群聊总结插件使用说明：
-
-触发方式：
-1. 自动触发 - {self.config['message_count']}条新消息后自动总结
-2. 定时总结 - {'每天' + self.config['fixed_send_time'] if self.config['summary_mode'] == 'daily' else '未启用'}
-3. 手动触发 - 发送 {self.config['trigger_command']}
-总结风格：{self.config['summary_style']}
-"""
-        yield event.plain_result(help_text)
+    @filter.command("${command}")
+    async def trigger(self, event: AstrMessageEvent):
+        """手动触发命令"""
+        await self._process_summary(event.message_obj.group_id)
+        yield event.plain_result("总结请求已处理")
 
     def __del__(self):
         """插件卸载时保存数据"""
-        self._save_message_store()
+        self._save_store()

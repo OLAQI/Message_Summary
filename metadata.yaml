@@ -1,4 +1,4 @@
-name: astrbot_plugin_Message_Summary
+name: Message_Summary
 desc: 群聊消息总结插件，支持自动、定时和命令触发
 help: |-  # 帮助信息（支持多行）
   群聊消息总结插件使用说明：

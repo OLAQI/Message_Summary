@@ -7,17 +7,18 @@
   "summary_time": {
     "description": "总结信息发送时间",
     "type": "string",
-    "options": ["立即", "每天固定时间"],
-    "default": "立即"
+    "default": "immediate",
+    "options": ["immediate", "daily"]
   },
   "fixed_send_time": {
-    "description": "如果选择每天固定时间发送，指定具体时间 (格式: HH:MM)",
+    "description": "每天固定发送时间（HH:MM）",
     "type": "string",
     "default": "23:59"
   },
   "trigger_command": {
-    "description": "监听的命令词，用于手动触发总结",
+    "description": "触发总结的命令词",
     "type": "string",
     "default": "/summary"
   }
 }
+

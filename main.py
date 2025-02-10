@@ -1,5 +1,5 @@
 import logging
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
+from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult, EventMessageType
 from astrbot.api.star import Context, Star, register
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from typing import List, Dict

@@ -1,41 +1,27 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "properties": {
-    "threshold": {
-      "type": "integer",
-      "minimum": 10,
-      "maximum": 500,
-      "default": 50,
-      "title": "触发消息数"
-    },
     "mode": {
-      "type": "string",
-      "enum": ["auto", "daily"],
-      "default": "auto",
-      "title": "工作模式"
+        "type": "string",
+        "description": "总结模式",
+        "options": ["auto", "daily"],
+        "default": "auto",
+        "hint": "auto-消息达阈值自动触发 | daily-每日定时总结"
     },
-    "time": {
-      "type": "string",
-      "format": "time",
-      "default": "23:30",
-      "title": "定时时间",
-      "options": {
-        "visibleIf": {
-          "mode": "daily"
-        }
-      }
-    },
-    "command": {
-      "type": "string",
-      "default": "/群总结",
-      "title": "触发命令"
+    "threshold": {
+        "type": "int",
+        "description": "触发阈值",
+        "default": 50,
+        "hint": "消息量达到该值时生成总结"
     },
     "style": {
-      "type": "string",
-      "enum": ["简洁", "幽默", "专业"],
-      "default": "简洁",
-      "title": "总结风格"
+        "type": "string",
+        "description": "总结风格",
+        "default": "简明扼要",
+        "options": ["简明扼要", "幽默风趣", "专业报告"]
+    },
+    "time": {
+        "type": "string",
+        "description": "定时时间",
+        "default": "23:30",
+        "hint": "仅在daily模式下生效(HH:mm格式)"
     }
-  }
 }

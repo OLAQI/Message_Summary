@@ -32,5 +32,10 @@
         "options": ["简洁", "严谨", "幽默"],
         "default": "简洁",
         "hint": "选择总结的风格"
+    },
+    "weather_api_key": {
+        "description": "天气API密钥",
+        "type": "string",
+        "hint": "用于查询天气的API密钥"
     }
 }

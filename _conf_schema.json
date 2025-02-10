@@ -1,29 +1,30 @@
 {
   "threshold": {
-    "description": "触发消息数",
     "type": "int",
+    "description": "触发消息数",
     "min": 5,
     "max": 200,
     "default": 20
   },
   "mode": {
-    "description": "工作模式",
     "type": "string",
+    "description": "工作模式",
     "options": ["auto", "daily"],
     "default": "auto"
   },
   "time": {
-    "description": "定时时间",
     "type": "string",
+    "description": "定时时间", 
     "default": "23:30",
     "visible_if": {"mode": "daily"}
   },
   "command": {
+    "type": "string",
     "description": "触发命令",
-    "type": "string", 
     "default": "/群总结"
   },
   "style": {
+    "type": "string",
     "description": "总结风格",
     "options": ["简洁", "幽默", "专业"],
     "default": "简洁"

@@ -1,7 +1,7 @@
 {
   "threshold": {
     "type": "int",
-    "description": "触发消息数",
+    "description": "触发消息数", 
     "min": 5,
     "max": 200,
     "default": 20
@@ -14,12 +14,12 @@
   },
   "time": {
     "type": "string",
-    "description": "定时时间", 
+    "description": "定时时间",
     "default": "23:30",
     "visible_if": {"mode": "daily"}
   },
   "command": {
-    "type": "string",
+    "type": "string", 
     "description": "触发命令",
     "default": "/群总结"
   },

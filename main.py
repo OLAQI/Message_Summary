@@ -16,10 +16,10 @@ class MessageSummaryPlugin(Star):
         '''总结群聊消息'''
         await self.handle_summary(event)
 
-    @filter.on_message(priority=-1)
+    @filter.event_message_type(EventMessageType.GROUP_MESSAGE, priority=-1) # 修正此行
     async def on_message(self, event: AstrMessageEvent):
 
-        if event.message_type != EventMessageType.GROUP_MESSAGE:
+        if event.message_type != EventMessageType.GROUP_MESSAGE:  #这行不需要了
             return
 
         group_id = event.group_id
@@ -99,3 +99,4 @@ class MessageSummaryPlugin(Star):
 
             if self.config.get("summary_mode", "immediate") == "daily":
                 await self.handle_summary(mock_event)
+

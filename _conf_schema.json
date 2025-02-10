@@ -1,20 +1,23 @@
 {
-    "message_count": {
-        "description": "触发总结的消息条数",
-        "type": "int",
-        "hint": "当群聊中达到这个消息条数时触发总结",
-        "default": 10
-    },
-    "summary_time": {
-        "description": "总结信息发送时间",
-        "type": "string",
-        "hint": "立即或每天固定时间 (例如: 'immediate' 或 '23:00')",
-        "default": "immediate"
-    },
-    "trigger_command": {
-        "description": "触发总结的命令词",
-        "type": "string",
-        "hint": "监听到该命令词时自动触发发送总结",
-        "default": "总结"
-    }
+  "message_count": {
+    "description": "触发总结的消息条数",
+    "type": "int",
+    "default": 50
+  },
+  "summary_time": {
+    "description": "总结信息发送时间",
+    "type": "string",
+    "options": ["立即", "每天固定时间"],
+    "default": "立即"
+  },
+  "fixed_send_time": {
+    "description": "如果选择每天固定时间发送，指定具体时间 (格式: HH:MM)",
+    "type": "string",
+    "default": "23:59"
+  },
+  "trigger_command": {
+    "description": "监听的命令词，用于手动触发总结",
+    "type": "string",
+    "default": "/summary"
+  }
 }

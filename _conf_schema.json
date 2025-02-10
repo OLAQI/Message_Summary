@@ -29,8 +29,8 @@
     "summary_mode":{
         "description": "总结风格",
         "type": "string",
-        "options": ["简洁", "严谨", "幽默"],
-        "default": "简洁",
+        "options": ["简介", "严谨", "幽默"],
+        "default": "简介",
         "hint": "选择总结的风格"
 
     }
